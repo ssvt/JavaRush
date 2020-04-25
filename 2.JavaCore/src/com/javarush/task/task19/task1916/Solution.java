@@ -6,6 +6,7 @@ import java.net.URL;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /* 
 Отслеживаем изменения
@@ -15,74 +16,35 @@ public class Solution {
     public static List<LineItem> lines = new ArrayList<LineItem>();
 
     public static void main(String[] args) {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        String file1 = "";
-        String file2 = "";
-        try {
-            file1 = reader.readLine();
-            file2 = reader.readLine();
-            reader.close();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+             FileReader fileReader1 = new FileReader(reader.readLine());
+             FileReader fileReader2 = new FileReader(reader.readLine())) {
 
-            URL resource1 = Solution.class.getResource(file1);
-            URL resource2 = Solution.class.getResource(file2);
+            List<String> original = new BufferedReader(fileReader1).lines().collect(Collectors.toList());
+            List<String> modified = new BufferedReader(fileReader2).lines().collect(Collectors.toList());
 
-            FileReader fileReader1 = new FileReader(Paths.get(resource1.toURI()).toFile());             // так не хавает валидатор  включить нижнюю
-            FileReader fileReader2 = new FileReader(Paths.get(resource2.toURI()).toFile());
-
-//            FileReader fileReader1 = new FileReader(file1);
-//            FileReader fileReader2 = new FileReader(file2);
-
-            BufferedReader reader1 = new BufferedReader(fileReader1);
-            BufferedReader reader2 = new BufferedReader(fileReader2);
-            String fileLine1;
-            String fileLine2;
-            List<String> lines1 = new ArrayList<String>();
-            while ((fileLine1 = reader1.readLine()) != null) {
-                lines1.add(fileLine1);
-            }
-            List<String> lines2 = new ArrayList<String>();
-            while ((fileLine2 = reader2.readLine()) != null) {
-                lines2.add(fileLine2);
-            }
-
-            fileReader1.close();
-            fileReader1.close();
-            reader1.close();
-            reader2.close();
-/**
- *    ***************  main logic  *********************************
- */
-            for (int x = 0; x < lines1.size(); x++){
-                if (lines1.size() >= lines2.size() ){                   //если в первом файле больше строк или так же
-                    String ln1 = lines1.get(x);
-                    String ln2 = "";
-                    try {
-                        ln2 = lines2.get(x);
-                    }catch (IndexOutOfBoundsException e) {
-
-                    }
-                    if (ln1.equals(ln2)) {
-                        LineItem lineItem = new LineItem(Type.SAME, ln1);
-                        lines.add(lineItem);
-                    }else{
-                        LineItem lineItem = new LineItem(Type.REMOVED, ln1);
-                        lines.add(lineItem);
-                    }
+            while (original.size() != 0 & modified.size() != 0) {
+                if (original.get(0).equals(modified.get(0))) {
+                    lines.add(new LineItem(Type.SAME, original.remove(0)));
+                    modified.remove(0);
+                } else if (modified.size() != 1 && original.get(0).equals(modified.get(1))) {
+                    lines.add(new LineItem(Type.ADDED, modified.remove(0)));
+                } else if (original.size() != 1 && original.get(1).equals(modified.get(0))) {
+                    lines.add(new LineItem(Type.REMOVED, original.remove(0)));
                 }
-
             }
 
-/**
- * ********************************************************************
-  */
-            for (int x = 0; x < lines.size(); x++){
-                System.out.println(lines.get(x).type + " " + lines.get(x).line);
+            if (original.size() != 0) {
+                lines.add(new LineItem(Type.REMOVED, original.remove(0)));
+            } else if (modified.size() != 0) {
+                lines.add(new LineItem(Type.ADDED, modified.remove(0)));
             }
-        } catch (IOException | URISyntaxException e) {
- //           System.out.println(" Ошибка ввода имени файла \n" + e.getLocalizedMessage() + "\n" + e.getMessage());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    }
 
+        lines.forEach(System.out::println);
+    }
     public static enum Type {
         ADDED,        //добавлена новая строка
         REMOVED,      //удалена строка
@@ -96,6 +58,14 @@ public class Solution {
         public LineItem(Type type, String line) {
             this.type = type;
             this.line = line;
+        }
+
+        @Override
+        public String toString() {
+            return "LineItem{" +
+                    "type=" + type +
+                    ", line='" + line + '\'' +
+                    '}';
         }
     }
 }

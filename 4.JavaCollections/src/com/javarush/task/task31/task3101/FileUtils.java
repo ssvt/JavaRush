@@ -34,8 +34,6 @@ public class FileUtils {
                     mapList.put(fileName, fileEntry.getAbsolutePath());
                }
             }
-    //        Collections.sort(list);
-    //        list.sort(String::compareToIgnoreCase);
         }
         return mapList;
     }

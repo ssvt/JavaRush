@@ -1,55 +1,77 @@
 package com.javarush.task.task31.task3101;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.*;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 /*
 Проход по дереву файлов
 */
 public class Solution {
-    public static void main(String[] args) {
-        String path = args[0];
-        String resultFileAbsolutePath = args[1];
 
-        File fileOld = new File(resultFileAbsolutePath);                            // это абсолютный путь к старому названию файла
-        String pathToFile = fileOld.getParentFile().toString();                     // сохраняем отдельно путь к этому файлу
+    public static void main(String[] args) throws IOException {
+        File dir = new File(args[0]);
+        File file = new File(args[1]);
+        File newFile = new File(file.getParent() + File.separator + "allFilesContent.txt");
+        FileUtils.renameFile(file, newFile);
 
-        String newFilePath = pathToFile + File.separator + "allFilesContent.txt";   // переименовываем файл с сохранением пути к нему
+        FileOutputStream fileOutputStream = new FileOutputStream(newFile);
+        fileOutputStream.close();
 
-        File fileNew = new File(newFilePath);
-        if ( FileUtils.isExist(fileOld) ) FileUtils.renameFile(fileOld, fileNew);
-        else {
-            try {
-                fileNew.createNewFile();
-            } catch (IOException e) { e.printStackTrace(); }
+        //сбор файлов в заданом каталоге <50 байт, сортировка
+        ArrayList<File> files = new ArrayList<>();
+        files = folderOpener(dir);
+        sortFilesByName(files);
+
+        fileOutputStream = new FileOutputStream(newFile);
+        for(File fl: files){
+            FileInputStream fileInputStream = new FileInputStream(fl);
+
+            byte buff[] = new byte[fileInputStream.available()];
+            fileInputStream.read(buff);
+            fileOutputStream.write(buff);
+
+            fileOutputStream.flush();
+            fileOutputStream.write("\n".getBytes()); //можно использовать System.lineSeparator(), но на всякий случай так, а вдруг ВАЛИДАТОР
+
+            fileInputStream.close();
         }
+        fileOutputStream.close();
 
-        final File folder = new File(path);
-        Map<String, String> list = FileUtils.listFilesFromFolder(folder);           // получаем список нужных нам файлов в виде ключ - значение
+    }
 
-        try {
-            FileWriter writer = new FileWriter(fileNew);                            // поток на запись в требуемый файл
-            for (Map.Entry<String, String> entry : list.entrySet()){
-//              System.out.println(entry.getKey() + "  :  " + entry.getValue());
-                FileReader reader = new FileReader(entry.getValue());
-                Scanner scan = new Scanner(reader);
-                while (scan.hasNextLine()){
-                    writer.write(scan.nextLine());
-                    writer.write("\n");
-                }
-                reader.close();
+    //сортировка
+    public static void sortFilesByName(ArrayList<File> list){
+        list.sort(new Comparator<File>() {
+            @Override
+            public int compare(File o1, File o2) {
+                return (o1.getName()).compareTo(o2.getName());
             }
-     //           writer.write( );
-            writer.flush();
-            writer.close();
-        } catch (IOException e) { e.printStackTrace(); }
+        });
+    }
 
+    public static ArrayList<File> folderOpener(File directory){
+        ArrayList<File> fileList = new ArrayList<>();
+        File file = new File(directory.getAbsolutePath());
+
+        for(File entry: file.listFiles()){
+            if(entry.isDirectory()) {
+                ArrayList<File> innerFiles = folderOpener(entry);
+                for(File inner: innerFiles){
+                    fileList.add(inner);
+                }
+            }else{
+                if (entry.length() > 50) {
+                    FileUtils.deleteFile(entry);
+                } else {
+                    fileList.add(entry);
+                }
+            }
+        }
+        return fileList;
     }
 }
